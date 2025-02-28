@@ -35,17 +35,19 @@ class Node:
     def send_message(self, target_id, content):
         """Envoie un message en routant de proche en proche."""
         msg = Message(self.node_id, target_id, content)
-        self.forward_message(msg)
+        self.env.process(self.forward_message(msg))
 
     def forward_message(self, msg):
         """Routage de proche en proche vers la destination."""
         current = self
         print(f"[{self.env.now}] Node {current.node_id} veux envoyer un message a  {msg.receiver}")
         while current.node_id != msg.receiver:
+            
             if msg.receiver > current.node_id:
                 next_hop = current.right 
             else:
                 next_hop =current.left
+            yield self.env.timeout(random.uniform(0.1, 1))  # Simule un délai de transmission
 
             print(f"[{self.env.now}] Node {current.node_id} envoie le message a {next_hop.node_id}")
             current = next_hop
@@ -117,7 +119,7 @@ env.process(node_arrival(env, dht))
 def send_test_messages(env, dht):
     while True:
         yield env.timeout(10)
-        if len(dht.nodes) > 1:
+        if len(dht.nodes) > 3:
             sender = random.choice(dht.nodes)
             receiver = random.choice(dht.nodes)
             if sender != receiver:
