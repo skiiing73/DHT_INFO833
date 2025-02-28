@@ -35,32 +35,31 @@ class Node:
     def send_message(self, target_id, content):
         """Envoie un message en routant de proche en proche."""
         msg = Message(self.node_id, target_id, content)
-        self.env.process(self.forward_message(msg))
+        self.forward_message(msg)
 
     def forward_message(self, msg):
         """Routage de proche en proche vers la destination."""
-        current = self
-        print(f"[{self.env.now}] Node {current.node_id} veux envoyer un message a  {msg.receiver}")
-        while current.node_id != msg.receiver:
-            
-            if msg.receiver > current.node_id:
-                next_hop = current.right 
-            else:
-                next_hop =current.left
-            yield self.env.timeout(random.uniform(0.1, 1))  # Simule un délai de transmission
-
-            print(f"[{self.env.now}] Node {current.node_id} envoie le message a {next_hop.node_id}")
-            current = next_hop
-        current.inbox.append(msg)
-        print(f"[{self.env.now}] Node {current.node_id} a recu le message: {msg.content}")
-
+        print(f"[{self.env.now}] Node {self.node_id} veux envoyer un message a  {msg.receiver}")
+        self.inbox.append(msg)
+        
     def handle_messages(self):
         """Gère les messages entrants."""
         while True:
             yield self.env.timeout(1)
             while self.inbox:
                 msg = self.inbox.pop(0)
-                print(f"[{self.env.now}] Node {self.node_id} traite le message de {msg.sender}: {msg.content}")
+                if self.node_id != msg.receiver:
+                    if msg.receiver > self.node_id:
+                        next_hop = self.right 
+                    else:
+                        next_hop =self.left
+                    yield self.env.timeout(random.uniform(0.1, 1))  # Simule un délai de transmission
+                    next_hop.env.process(self.forward_message(msg))
+                    print(f"[{self.env.now}] Node {self.node_id} envoie le message a {next_hop.node_id}")
+                else:
+                    print(f"[{self.env.now}] Node {self.node_id} a recu le message: {msg.content}")
+                    
+                    print(f"[{self.env.now}] Node {self.node_id} traite le message de {msg.sender}: {msg.content}")
 
 class DHT:
     def __init__(self, env):
@@ -108,6 +107,7 @@ print(f"[{env.now}] premier node {first_node.node_id} insérer")
 # Ajouter des nœuds progressivement
 def node_arrival(env, dht):
     while True:
+        
         yield env.timeout(random.uniform(3, 7))  # Temps aléatoire avant un nouveau join
         new_node = Node(env, dht, random.randint(0, 100))
         new_node.join(random.choice(dht.nodes))
@@ -126,6 +126,5 @@ def send_test_messages(env, dht):
                 sender.send_message(receiver.node_id, "Hello DHT!")
 
 env.process(send_test_messages(env, dht))
-
 # Lancer la simulation
 env.run(until=50)
