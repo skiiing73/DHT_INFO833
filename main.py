@@ -1,4 +1,4 @@
-import simpy
+import simpy 
 import random
 
 class Message:
@@ -6,7 +6,6 @@ class Message:
         self.sender = sender
         self.receiver = receiver
         self.content = content
-
 
 class Node:
     def __init__(self, env, dht, node_id):
@@ -22,7 +21,7 @@ class Node:
     def run(self):
         while True:
             yield self.env.timeout(random.uniform(5, 10))  # Simule une activité du nœud
-            print(f"[{self.env.now}] Node {self.node_id} is active")
+            print(f"[{self.env.now}] Nœud {self.node_id} est actif")
 
     def join(self, existing_node):
         """Un nouveau nœud rejoint l'anneau en contactant un nœud existant."""
@@ -33,33 +32,28 @@ class Node:
         self.dht.remove_node(self)
 
     def send_message(self, target_id, content):
-        """Envoie un message en routant de proche en proche."""
+        """Envoie un message à un nœud via le mécanisme de routage."""
         msg = Message(self.node_id, target_id, content)
-        self.forward_message(msg)
+        self.inbox.append(msg)  # Met le message dans la boîte de réception
+        print(f"[{self.env.now}] Nœud {self.node_id} envoie un message à {target_id}")
 
-    def forward_message(self, msg):
-        """Routage de proche en proche vers la destination."""
-        print(f"[{self.env.now}] Node {self.node_id} veux envoyer un message a  {msg.receiver}")
-        self.inbox.append(msg)
-        
     def handle_messages(self):
-        """Gère les messages entrants."""
+        """Gère les messages entrants et les transmet si nécessaire."""
         while True:
-            yield self.env.timeout(1)
+            yield self.env.timeout(1)  # Attente d'un délai avant de traiter le message
             while self.inbox:
-                msg = self.inbox.pop(0)
-                if self.node_id != msg.receiver:
-                    if msg.receiver > self.node_id:
-                        next_hop = self.right 
-                    else:
-                        next_hop =self.left
-                    yield self.env.timeout(random.uniform(0.1, 1))  # Simule un délai de transmission
-                    next_hop.env.process(self.forward_message(msg))
-                    print(f"[{self.env.now}] Node {self.node_id} envoie le message a {next_hop.node_id}")
+                msg = self.inbox.pop(0)  # Récupère le premier message
+                if self.node_id == msg.receiver:
+                    # Si c'est le bon destinataire, on traite le message
+                    print(f"[{self.env.now}] Nœud {self.node_id} traite le message de {msg.sender}: {msg.content}")
                 else:
-                    print(f"[{self.env.now}] Node {self.node_id} a recu le message: {msg.content}")
-                    
-                    print(f"[{self.env.now}] Node {self.node_id} traite le message de {msg.sender}: {msg.content}")
+                    # Si ce n'est pas le bon destinataire, on transmet au voisin suivant
+                    if self.node_id < msg.receiver:
+                        print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
+                        self.right.inbox.append(msg)  # Transmet le message au voisin suivant
+                    else: 
+                        print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
+                        self.right.inbox.append(msg)  # Transmet le message au voisin suivant
 
 class DHT:
     def __init__(self, env):
@@ -75,17 +69,17 @@ class DHT:
         idx = self.nodes.index(new_node)
         if idx > 0:
             new_node.left = self.nodes[idx - 1]  
-        else :
-            new_node.left=self.nodes[-1]
+        else:
+            new_node.left = self.nodes[-1]
         if idx < len(self.nodes) - 1:
             new_node.right = self.nodes[idx + 1]  
-        else :
-            new_node.right=self.nodes[0]
+        else:
+            new_node.right = self.nodes[0]
         
         # Mise à jour des voisins
         new_node.left.right = new_node
         new_node.right.left = new_node
-        print(f"[{self.env.now}] Node {new_node.node_id} a rejoint. Ses voisins sont: {new_node.left.node_id}, {new_node.right.node_id}")
+        print(f"[{self.env.now}] Nœud {new_node.node_id} a rejoint. Ses voisins sont: {new_node.left.node_id}, {new_node.right.node_id}")
 
     def remove_node(self, node):
         """Supprime un nœud de l'anneau et met à jour les voisins."""
@@ -93,7 +87,7 @@ class DHT:
             node.left.right = node.right
             node.right.left = node.left
             self.nodes.remove(node)
-            print(f"[{self.env.now}] Node {node.node_id} est parti. Ses nouveaux voisins sont: {node.left.node_id}, {node.right.node_id}")
+            print(f"[{self.env.now}] Nœud {node.node_id} est parti. Ses nouveaux voisins sont: {node.left.node_id}, {node.right.node_id}")
 
 # Simulation
 env = simpy.Environment()
@@ -102,12 +96,11 @@ dht = DHT(env)
 # Création du premier nœud
 first_node = Node(env, dht, random.randint(0, 100))
 dht.nodes.append(first_node)
-print(f"[{env.now}] premier node {first_node.node_id} insérer")
+print(f"[{env.now}] Premier nœud {first_node.node_id} inséré")
 
 # Ajouter des nœuds progressivement
 def node_arrival(env, dht):
     while True:
-        
         yield env.timeout(random.uniform(3, 7))  # Temps aléatoire avant un nouveau join
         new_node = Node(env, dht, random.randint(0, 100))
         new_node.join(random.choice(dht.nodes))
@@ -126,5 +119,6 @@ def send_test_messages(env, dht):
                 sender.send_message(receiver.node_id, "Hello DHT!")
 
 env.process(send_test_messages(env, dht))
+
 # Lancer la simulation
 env.run(until=50)
