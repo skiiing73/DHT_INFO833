@@ -38,11 +38,11 @@ class DHT:
         if idx > 0:
             new_node.left = self.nodes[idx - 1]  
         else :
-            self.nodes[-1]
+            new_node.left=self.nodes[-1]
         if idx < len(self.nodes) - 1:
             new_node.right = self.nodes[idx + 1]  
         else :
-            self.nodes[0]
+            new_node.right=self.nodes[0]
         
         # Mise à jour des voisins
         new_node.left.right = new_node
@@ -78,3 +78,8 @@ env.process(node_arrival(env, dht))
 
 # Lancer la simulation
 env.run(until=50)
+for node in dht.nodes:
+
+    print(node.node_id)
+    print("voisin gauche de : ",node.node_id," est ",node.left.node_id)
+    print("voisin droite de : ",node.node_id," est ",node.right.node_id,"/n/n")
