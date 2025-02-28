@@ -35,7 +35,16 @@ class Node:
                     print(f"[{self.env.now}] Nœud {self.node_id} traite le message de {msg.sender}: {msg.content}")
                 else:
                     # Si ce n'est pas le bon destinataire, on transmet au voisin suivant
-                    if self.node_id < msg.receiver:
+                    # On regarde nos voisins dans le cas où notre destinataire se trouve de l'autre coté du cercle
+                    # Cela permet d'eviter de faire tout le tour de la DHT
+                    if msg.receiver == self.right.node_id :
+                        print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
+                        self.right.inbox.append(msg)
+                    elif msg.receiver == self.left.node_id :
+                        print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
+                        self.left.inbox.append(msg)
+
+                    elif self.node_id < msg.receiver:
                         print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
                         self.right.inbox.append(msg)  # Transmet le message au voisin suivant
                     else: 
