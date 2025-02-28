@@ -27,7 +27,7 @@ class Node:
     def handle_messages(self):
         """Gère les messages entrants et les transmet si nécessaire."""
         while True:
-            yield self.env.timeout(1)  # Attente d'un délai avant de traiter le message
+            yield self.env.timeout(2)  # Attente d'un délai avant de traiter le message
             while self.inbox:
                 msg = self.inbox.pop(0)  # Récupère le premier message
                 if self.node_id == msg.receiver:
@@ -50,3 +50,4 @@ class Node:
                     else: 
                         print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
                         self.left.inbox.append(msg)  # Transmet le message au voisin suivant
+    

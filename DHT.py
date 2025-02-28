@@ -31,4 +31,30 @@ class DHT:
             node.right.left = node.left
             self.nodes.remove(node)
             print(f"[{self.env.now}] Node {node.node_id} est parti.")
+        
+    def print_etat_dht(self):
+        """Affiche l'état de la DHT sous forme circulaire."""
+        if not self.nodes:
+            print("Aucun nœud dans la DHT.")
+            return
+        
+        print("\nÉtat actuel de la DHT :")
+        print("----------------------------------------------------")
+        
+        nodes_state = []
+        first = self.nodes[0]
+        current = first
+        
+        while True:
+            nodes_state.append(f"[Nœud {current.node_id}] Données : {current.data if hasattr(current, 'data') else 'Aucune'}")
+            current = current.right
+            if current == first:
+                break
 
+        # Affichage circulaire des nœuds
+        for i in range(len(nodes_state)):
+            print(nodes_state[i], end="  <->  ")
+           
+            print()
+        
+        print("----------------------------------------------------\n")
