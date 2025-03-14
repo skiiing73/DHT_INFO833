@@ -4,7 +4,7 @@ from Node import Node
 from DHT import DHT
 
 # Ajouter des nœuds progressivement
-def node_arrival(env, dht):
+def node_arrival(env, dht, noeud_origine):
     while True:
         yield env.timeout(random.uniform(3, 7))  # Temps aléatoire avant un nouveau join
         
@@ -13,13 +13,13 @@ def node_arrival(env, dht):
         while any(node.node_id == new_node_id for node in dht.nodes):  # Vérifie si l'ID existe déjà
             new_node_id = random.randint(0, 100)  # Génère un autre ID si l'ID existe déjà
         new_node = Node(env, dht, new_node_id)
-        new_node.join()
+        new_node.join(noeud_origine)
 
 
 def node_exit(env, dht):
     while True:
         yield env.timeout(random.uniform(15,20))
-        dht.remove_node(random.choice(dht.nodes))
+        random.choice(dht.nodes).leave()
 
 # Tester l'envoi de messages
 def send_test_messages(env, dht):
@@ -41,12 +41,12 @@ env = simpy.Environment()
 dht = DHT(env)
 
 # Création du premier nœud
-first_node = Node(env, dht, random.randint(0, 100))
+first_node = Node(env, dht, random.randint(0, 100),is_connected = True)
 dht.nodes.append(first_node)
 print(f"[{env.now}] premier node {first_node.node_id} inséré")
 
-env.process(node_arrival(env, dht))
-#env.process(send_test_messages(env, dht))
+env.process(node_arrival(env, dht, first_node))
+env.process(send_test_messages(env, dht))
 env.process(node_exit(env, dht))
 env.process(afficher_DHT(env,dht))
 env.run(until=100)
