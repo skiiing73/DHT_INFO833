@@ -32,44 +32,34 @@ class Node:
 
             msg = self.inbox.pop(0)
             voisins = msg.content
-            left, current, right = voisins
+            tmp_left, current, tmp_right = voisins
 
-            if left == right == current:  # Cas d'un seul nœud
-                self.left = left
-                self.right = right
+            if tmp_left == tmp_right == current:  # Cas d'un seul nœud
+                self.left = tmp_left
+                self.right = tmp_left
                 print("voisins de ",self.node_id,": sont",self.left.node_id," et ",self.right.node_id)
 
                 self.is_connected = True
 
-            elif left==right :#cas pour le deuxieme noeud
-                if current.node_id > self.node_id :
-                    self.left = left 
-                    self.right = current
-                else :
-                    self.left = current 
-                    self.right = right
-                print("voisins de ",self.node_id,": sont",self.left.node_id," et ",self.right.node_id)
-                self.is_connected = True
-
-            else:
-                if self.node_id > right.node_id:
-                    current = right
-                if self.node_id < left.node_id:
-                    current = left
+            else: #cas usuel
+                if self.node_id > tmp_right.node_id and tmp_right.node_id > current.node_id:
+                    current = tmp_right
+                elif self.node_id < tmp_left.node_id and tmp_left.node_id < current.node_id:
+                    current = tmp_left
                 else:
                     if current.node_id > self.node_id :
-                        self.left = left 
+                        self.left = tmp_left 
                         self.right = current
                     else :
                         self.left = current 
-                        self.right = right
+                        self.right = tmp_right
                     print("voisins de ",self.node_id,": sont",self.left.node_id," et ",self.right.node_id)
 
                     self.is_connected = True
 
         print(f"[{self.env.now}] Nœud {self.node_id} ennvoie un message a ses voisins pour maj")
-        self.send_message(left, "", voisin="gauche")
-        self.send_message(right, "", voisin="droite")
+        self.send_message(self.left, "", voisin="gauche")
+        self.send_message(self.right, "", voisin="droite")
         print(f"[{self.env.now}] Nœud {self.node_id} inséré entre {self.left.node_id} et {self.right.node_id}")
 
         self.dht.add_node_dht(self)  # Ajout dans la DHT
@@ -106,11 +96,10 @@ class Node:
                     
                     # Message pour la maj des voisins lors de l'insertion
                     elif msg.voisin is not None:
-                        print("maj")
                         if msg.voisin == "gauche":
-                            self.left = msg.sender
-                        else:
                             self.right = msg.sender
+                        else:
+                            self.left = msg.sender
                         
                     
                     elif self.node_id == msg.receiver:
