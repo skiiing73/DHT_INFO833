@@ -23,6 +23,7 @@ class Node:
         """Processus SimPy pour rejoindre l'anneau sans bloquer."""
         current = noeud_origine
         while not self.is_connected:
+            print(f"[{self.env.now}] Nœud {self.node_id} veut envoyer un message à {current.node_id}")
             self.send_message(current, "", join_info=True)
             
 
@@ -36,32 +37,36 @@ class Node:
             if left == right == current:  # Cas d'un seul nœud
                 self.left = left
                 self.right = right
+                print("voisins de ",self.node_id,": sont",left.node_id," et ",right.node_id)
+
                 self.is_connected = True
 
-            elif left==right :
+            elif left==right :#cas pour le deuxieme noeud
                 if current.node_id > self.node_id :
                     self.left = left 
                     self.right = current
                 else :
                     self.left = current 
                     self.right = right
-
+                print("voisins de ",self.node_id,": sont",left.node_id," et ",right.node_id)
                 self.is_connected = True
 
-            elif self.node_id > right.node_id:
-                current = right
-            elif self.node_id < left.node_id:
-                current = left
             else:
-                if current.node_id > self.node_id :
-                    self.left = left 
-                    self.right = current
-                else :
-                    self.left = current 
-                    self.right = right
+                if self.node_id > right.node_id:
+                    current = right
+                if self.node_id < left.node_id:
+                    current = left
+                else:
+                    if current.node_id > self.node_id :
+                        self.left = left 
+                        self.right = current
+                    else :
+                        self.left = current 
+                        self.right = right
+                    print("voisins de ",self.node_id,": sont",left.node_id," et ",right.node_id)
 
-                self.is_connected = True
-
+                    self.is_connected = True
+        print(f"[{self.env.now}] Nœud {self.node_id} ennvoie un message a ses voisins pour maj")
         self.send_message(left, "", voisin="gauche")
         self.send_message(right, "", voisin="droite")
         print(f"[{self.env.now}] Nœud {self.node_id} inséré entre {self.left.node_id} et {self.right.node_id}")
@@ -82,7 +87,7 @@ class Node:
         """Envoie un message à un nœud via le mécanisme de routage."""
         msg = Message(self, receiver, content, join_info, voisin)
         receiver.inbox.append(msg)  # Met le message dans la boîte de réception
-        print(f"[{self.env.now}] Nœud {self.node_id} veut envoyer un message à {receiver.node_id}")
+        
 
     def handle_messages(self):
         """Gère les messages entrants et les transmet si nécessaire."""
@@ -94,6 +99,7 @@ class Node:
                     msg = self.inbox.pop(0)  # Récupère le premier message
                     # Message pour l'arrivé de nouveau noeud
                     if msg.join_info:
+                        print(f"[{self.env.now}] Nœud {self.node_id} veut envoyer un message à {msg.sender.node_id} pour lui donner ses voisins")
                         self.send_message(msg.sender,[self.left,self,self.right])
                         
                     
