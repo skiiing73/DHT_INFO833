@@ -37,7 +37,7 @@ class Node:
             if left == right == current:  # Cas d'un seul nœud
                 self.left = left
                 self.right = right
-                print("voisins de ",self.node_id,": sont",left.node_id," et ",right.node_id)
+                print("voisins de ",self.node_id,": sont",self.left.node_id," et ",self.right.node_id)
 
                 self.is_connected = True
 
@@ -48,7 +48,7 @@ class Node:
                 else :
                     self.left = current 
                     self.right = right
-                print("voisins de ",self.node_id,": sont",left.node_id," et ",right.node_id)
+                print("voisins de ",self.node_id,": sont",self.left.node_id," et ",self.right.node_id)
                 self.is_connected = True
 
             else:
@@ -63,9 +63,10 @@ class Node:
                     else :
                         self.left = current 
                         self.right = right
-                    print("voisins de ",self.node_id,": sont",left.node_id," et ",right.node_id)
+                    print("voisins de ",self.node_id,": sont",self.left.node_id," et ",self.right.node_id)
 
                     self.is_connected = True
+
         print(f"[{self.env.now}] Nœud {self.node_id} ennvoie un message a ses voisins pour maj")
         self.send_message(left, "", voisin="gauche")
         self.send_message(right, "", voisin="droite")
