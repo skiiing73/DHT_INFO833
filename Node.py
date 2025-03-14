@@ -23,28 +23,43 @@ class Node:
         """Processus SimPy pour rejoindre l'anneau sans bloquer."""
         current = noeud_origine
         while not self.is_connected:
-            self.send_message(current.node_id, "", join_info=True)
+            self.send_message(current, "", join_info=True)
             
-            # Attente active remplacée par un yield
+
             while len(self.inbox) == 0:
                 yield self.env.timeout(0.1)  # Pause dans la simulation
 
             msg = self.inbox.pop(0)
             voisins = msg.content
-            print(voisins)
             left, current, right = voisins
 
-            if left == right:  # Cas d'un seul nœud
+            if left == right == current:  # Cas d'un seul nœud
                 self.left = left
                 self.right = right
                 self.is_connected = True
+
+            elif left==right :
+                if current.node_id > self.node_id :
+                    self.left = left 
+                    self.right = current
+                else :
+                    self.left = current 
+                    self.right = right
+
+                self.is_connected = True
+
             elif self.node_id > right.node_id:
                 current = right
             elif self.node_id < left.node_id:
                 current = left
             else:
-                self.left = left if current.node_id > self.node_id else current
-                self.right = current if current.node_id > self.node_id else right
+                if current.node_id > self.node_id :
+                    self.left = left 
+                    self.right = current
+                else :
+                    self.left = current 
+                    self.right = right
+
                 self.is_connected = True
 
         self.send_message(left, "", voisin="gauche")
@@ -63,51 +78,53 @@ class Node:
         self.dht.remove_node_dht(self)
         print(f"[{self.env.now}] Node {self.node_id} est parti.")
 
-    def send_message(self, target_id, content, join_info = False, voisin= None):
+    def send_message(self, receiver, content, join_info = False, voisin= None):
         """Envoie un message à un nœud via le mécanisme de routage."""
-        msg = Message(self.node_id, target_id, content, join_info, voisin)
-        self.inbox.append(msg)  # Met le message dans la boîte de réception
-        print(f"[{self.env.now}] Nœud {self.node_id} veut envoyer un message à {target_id}")
+        msg = Message(self, receiver, content, join_info, voisin)
+        receiver.inbox.append(msg)  # Met le message dans la boîte de réception
+        print(f"[{self.env.now}] Nœud {self.node_id} veut envoyer un message à {receiver.node_id}")
 
     def handle_messages(self):
         """Gère les messages entrants et les transmet si nécessaire."""
-        while self.is_connected:
-            yield self.env.timeout(2)  # Attente d'un délai avant de traiter le message
-            while self.inbox:
-                msg = self.inbox.pop(0)  # Récupère le premier message
-                print(msg)
-                # Message pour l'arrivé de nouveau noeud
-                if msg.join_info:
-                    self.send_message(msg.sender,[self.left,self,self.right])
-                    return
-                
-                # Message pour la maj des voisins lors de l'insertion
-                if msg.voisin is not None:
-                    if msg.voisin == "gauche":
-                        self.left = msg.sender
+        while True :
+            yield self.env.timeout(0.1)
+            while self.is_connected:
+                yield self.env.timeout(2)  # Attente d'un délai avant de traiter le message
+                while self.inbox:
+                    msg = self.inbox.pop(0)  # Récupère le premier message
+                    # Message pour l'arrivé de nouveau noeud
+                    if msg.join_info:
+                        self.send_message(msg.sender,[self.left,self,self.right])
+                        
+                    
+                    # Message pour la maj des voisins lors de l'insertion
+                    elif msg.voisin is not None:
+                        print("maj")
+                        if msg.voisin == "gauche":
+                            self.left = msg.sender
+                        else:
+                            self.right = msg.sender
+                        
+                    
+                    elif self.node_id == msg.receiver:
+                        # Si c'est le bon destinataire, on traite le message
+                        print(f"[{self.env.now}] Nœud {self.node_id} traite le message de {msg.sender}: {msg.content}")
                     else:
-                        self.right = msg.sender
-                    return
-                
-                if self.node_id == msg.receiver:
-                    # Si c'est le bon destinataire, on traite le message
-                    print(f"[{self.env.now}] Nœud {self.node_id} traite le message de {msg.sender}: {msg.content}")
-                else:
-                    # Si ce n'est pas le bon destinataire, on transmet au voisin suivant
-                    # On regarde nos voisins dans le cas où notre destinataire se trouve de l'autre coté du cercle
-                    # Cela permet d'eviter de faire tout le tour de la DHT
-                    if msg.receiver == self.right.node_id :
-                        print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
-                        self.right.inbox.append(msg)
-                    elif msg.receiver == self.left.node_id :
-                        print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
-                        self.left.inbox.append(msg)
+                        # Si ce n'est pas le bon destinataire, on transmet au voisin suivant
+                        # On regarde nos voisins dans le cas où notre destinataire se trouve de l'autre coté du cercle
+                        # Cela permet d'eviter de faire tout le tour de la DHT
+                        if msg.receiver.node_id == self.right.node_id :
+                            print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
+                            self.right.inbox.append(msg)
+                        elif msg.receiver.node_id == self.left.node_id :
+                            print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
+                            self.left.inbox.append(msg)
 
-                    elif self.node_id < msg.receiver:
-                        print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
-                        self.right.inbox.append(msg)  # Transmet le message au voisin suivant
-                    else: 
-                        print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
-                        self.left.inbox.append(msg)  # Transmet le message au voisin suivant
+                        elif self.node_id < msg.receiver.node_id:
+                            print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
+                            self.right.inbox.append(msg)  # Transmet le message au voisin suivant
+                        else: 
+                            print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
+                            self.left.inbox.append(msg)  # Transmet le message au voisin suivant
 
         
