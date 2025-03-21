@@ -1,5 +1,5 @@
 class Message:
-    def __init__(self, sender, receiver, content,final_destinataire, join_info=False,voisin=None):
+    def __init__(self, sender, receiver, content,final_destinataire=None, join_info=False,voisin=None):
         self.sender = sender
         self.receiver = receiver
         self.content = content

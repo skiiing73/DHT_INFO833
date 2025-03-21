@@ -46,7 +46,7 @@ def send_test_data(env, dht):
 #Afficher l'etat de la DHT
 def afficher_DHT(env,dht):
     while True:
-        yield env.timeout(50)
+        yield env.timeout(40)
         dht.print_etat_dht()  
 
 env = simpy.Environment()
@@ -62,4 +62,4 @@ env.process(node_arrival(env, dht))
 env.process(send_test_data(env,dht))
 env.process(node_exit(env, dht,first_node))
 env.process(afficher_DHT(env,dht))
-env.run(until=200)
+env.run(until=201)
