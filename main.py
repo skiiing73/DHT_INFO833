@@ -2,6 +2,7 @@ import simpy
 import random
 from Node import Node
 from DHT import DHT
+from Donnees import Donnees
 
 # Ajouter des nœuds progressivement
 def node_arrival(env, dht):
@@ -33,6 +34,15 @@ def send_test_messages(env, dht):
                 sender.send_message(None,"Hello DHT!",final_destinataire=final_destinataire)
                 print(f"[{env.now}] Nœud {sender.node_id} veut envoyer un message à {final_destinataire.node_id} avec le contenu suivant Hello DHT!")
 
+def send_test_data(env, dht):
+    while True:
+        yield env.timeout(28)
+        if len(dht.nodes) > 3:
+            sender = random.choice(dht.nodes)
+            data = Donnees(random.randint(1,100),"test")
+            sender.send_message(content=data)
+            print(f"[{env.now}] Nœud {sender.node_id} veut introduire la donnée {data.id}")
+            
 #Afficher l'etat de la DHT
 def afficher_DHT(env,dht):
     while True:

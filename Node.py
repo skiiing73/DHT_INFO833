@@ -1,5 +1,5 @@
 from Message import Message
-
+from Donnees import Donnees
 
 class Node:
     def __init__(self, env, dht, node_id, is_connected=False,is_origin=False):
@@ -79,6 +79,17 @@ class Node:
 
     def send_message(self, receiver, content, final_destinataire=None,join_info = False, voisin= None):
         """Envoie un message à un nœud via le mécanisme de routage."""
+        #cas message avec data
+        if type(content) == Donnees :
+            if content.id >= self.right.node_id and self.node_id < self.right.node_id:
+                receiver=self.right
+            elif content.id <= self.left.node_id and self.node_id > self.left.node_id:
+                receiver=self.left
+            else :
+                self.stocker_donnees(content)
+                return
+
+        #cas message classique sans data (1er message)
         if receiver==None:
             if final_destinataire.node_id>self.node_id:
                 receiver=self.right
@@ -87,8 +98,10 @@ class Node:
         msg = Message(self, receiver, content, final_destinataire,join_info, voisin)
         receiver.inbox.append(msg)  # Met le message dans la boîte de réception
     
-    def stocker_donnees(self):
-        pass
+    def stocker_donnees(self,data):
+        self.data.append(data)
+
+        
     def handle_messages(self):
         """Gère les messages entrants et les transmet si nécessaire."""
         while True :
@@ -97,6 +110,7 @@ class Node:
                 yield self.env.timeout(2)  # Attente d'un délai avant de traiter le message
                 while self.inbox:
                     msg = self.inbox.pop(0)  # Récupère le premier message
+
                     # Message pour l'arrivé de nouveau noeud
                     if msg.join_info:
                         print(f"[{self.env.now}] Nœud {self.node_id} envoie un message à {msg.sender.node_id} pour lui donner ses voisins")
@@ -113,6 +127,7 @@ class Node:
                         elif msg.voisin == "droite_leaving":
                             self.left = msg.sender.left
                        
+                    # Message classico classique
                     if msg.final_destinataire is not None:
                         if self.node_id == msg.final_destinataire.node_id:
                             # Si c'est le bon destinataire, on traite le message
