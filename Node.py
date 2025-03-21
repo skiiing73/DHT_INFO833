@@ -9,6 +9,7 @@ class Node:
         self.left = self  # Voisin gauche (par défaut, lui-même)
         self.right = self  # Voisin droit (par défaut, lui-même)
         self.inbox = []  # File des messages reçus
+        self.data=[]
         self.is_connected = is_connected
         self.is_origin=is_origin
         self.env.process(self.handle_messages())
@@ -86,8 +87,8 @@ class Node:
         msg = Message(self, receiver, content, final_destinataire,join_info, voisin)
         receiver.inbox.append(msg)  # Met le message dans la boîte de réception
     
-
-
+    def stocker_donnees(self):
+        pass
     def handle_messages(self):
         """Gère les messages entrants et les transmet si nécessaire."""
         while True :
@@ -111,7 +112,7 @@ class Node:
                             self.right = msg.sender.right
                         elif msg.voisin == "droite_leaving":
                             self.left = msg.sender.left
-                        
+                       
                     if msg.final_destinataire is not None:
                         if self.node_id == msg.final_destinataire.node_id:
                             # Si c'est le bon destinataire, on traite le message
@@ -133,5 +134,4 @@ class Node:
                             else: 
                                 print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
                                 self.left.inbox.append(msg)  # Transmet le message au voisin suivant
-
         

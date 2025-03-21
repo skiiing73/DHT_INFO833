@@ -37,7 +37,7 @@ def send_test_messages(env, dht):
 def afficher_DHT(env,dht):
     while True:
         yield env.timeout(50)
-        dht.print_etat_dht()
+        dht.print_etat_dht()  
 
 env = simpy.Environment()
 dht = DHT(env)
@@ -48,7 +48,7 @@ dht.setNoeudOrigine(first_node)
 dht.nodes.append(first_node)
 print(f"[{env.now}] premier node {first_node.node_id} inséré")
 env.process(node_arrival(env, dht))
-env.process(send_test_messages(env, dht))
+#env.process(send_test_messages(env, dht))
 env.process(node_exit(env, dht,first_node))
 env.process(afficher_DHT(env,dht))
 env.run(until=200)
