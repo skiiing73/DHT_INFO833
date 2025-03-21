@@ -2,7 +2,14 @@ class DHT:
     def __init__(self, env):
         self.env = env
         self.nodes = []
+        self.noeud_origine=None
 
+    def setNoeudOrigine(self,noeud):
+        self.noeud_origine=noeud
+
+    def getNoeudOrigine(self):
+        return self.noeud_origine
+    
     def add_node_dht(self, new_node):
         """Ajoute un nœud à l'anneau."""
         self.nodes.append(new_node)

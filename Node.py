@@ -2,7 +2,7 @@ from Message import Message
 
 
 class Node:
-    def __init__(self, env, dht, node_id, is_connected=False):
+    def __init__(self, env, dht, node_id, is_connected=False,is_origin=False):
         self.env = env
         self.dht = dht
         self.node_id = node_id
@@ -10,7 +10,7 @@ class Node:
         self.right = self  # Voisin droit (par défaut, lui-même)
         self.inbox = []  # File des messages reçus
         self.is_connected = is_connected
-        
+        self.is_origin=is_origin
         self.env.process(self.handle_messages())
 
 
@@ -69,6 +69,10 @@ class Node:
         self.send_message(self.right, "", voisin="droite_leaving")
         
         self.is_connected = False
+        if self.is_origin:
+            self.dht.setNoeudOrigine(self.right)
+            self.right.is_origin=True
+        
         self.dht.remove_node_dht(self)
         print(f"[{self.env.now}] Node {self.node_id} est parti.")
 
