@@ -60,6 +60,7 @@ class Node:
         print(f"[{self.env.now}] Nœud {self.node_id} inséré entre {self.left.node_id} et {self.right.node_id}")
 
         self.dht.add_node_dht(self)  # Ajout dans la DHT
+        yield self.env.timeout(5)
         self.right.check_donnees()
         self.left.check_donnees()
 
@@ -99,24 +100,26 @@ class Node:
             self.data.append(tmp_data)
             if tmp_data.owner is None:
                 tmp_data.setOwner(self)
-                self.send_message(receiver=None,final_destinataire=self.right,content=tmp_data)
-                self.send_message(receiver=None,final_destinataire=self.left,content=tmp_data)
+                self.send_message(receiver=self.right,final_destinataire=self.right,content=tmp_data)
+                self.send_message(receiver=self.right,final_destinataire=self.left,content=tmp_data)
             print(f"[{self.env.now}] Nœud {self.node_id} a stocké la donnée {tmp_data.id}")
     
     def check_donnees(self):
         for elements in self.data:
             if not(elements.owner is self.right or elements.owner is self.left or elements.owner is self):
                 self.data.remove(elements)
+                print(f"[{self.env.now}] Nœud {self.node_id} a supprimé la donnée {elements.id}")
             if self==elements.owner:
-                self.send_message(receiver=None,final_destinataire=self.right,content=elements)
-                self.send_message(receiver=None,final_destinataire=self.left,content=elements)
+                
+                self.send_message(receiver=self.right,final_destinataire=self.right,content=elements)
+                self.send_message(receiver=self.left,final_destinataire=self.left,content=elements)
 
     def handle_messages(self):
         """Gère les messages entrants et les transmet si nécessaire."""
         while True:
-            yield self.env.timeout(1)
+            yield self.env.timeout(0.1)
             while self.is_connected:
-                yield self.env.timeout(2)
+                yield self.env.timeout(0.2)
                 while self.inbox:
                     msg = self.inbox.pop()
 

@@ -3,6 +3,7 @@ class DHT:
         self.env = env
         self.nodes = []
         self.noeud_origine=None
+        self.data=[]
 
     def setNoeudOrigine(self,noeud):
         self.noeud_origine=noeud

@@ -4,6 +4,7 @@ from Node import Node
 from DHT import DHT
 from Donnees import Donnees
 
+random.seed(2)
 # Ajouter des nœuds progressivement
 def node_arrival(env, dht):
     while True:
@@ -17,9 +18,9 @@ def node_arrival(env, dht):
         new_node.join(noeud_origine)
 
 
-def node_exit(env, dht,first_node):
+def node_exit(env, dht):
     while True:
-        yield env.timeout(random.uniform(30,40))
+        yield env.timeout(30)
         node_leaving=random.choice(dht.nodes)
         node_leaving.leave()
 
@@ -39,7 +40,11 @@ def send_test_data(env, dht):
         yield env.timeout(20)
         if len(dht.nodes) > 3:
             sender = random.choice(dht.nodes)
+            
             data = Donnees(random.randint(1,100),"test")
+            while any(data.id == d.id for d in dht.data):  # Vérifie si l'ID existe déjà
+                data = Donnees(random.randint(1,100),"test")
+            dht.data.append(data)
             sender.send_message(receiver=sender.right,content=data)
             print(f"[{env.now}] Nœud {sender.node_id} veut introduire la donnée {data.id}")
             
@@ -60,6 +65,6 @@ print(f"[{env.now}] premier node {first_node.node_id} inséré")
 env.process(node_arrival(env, dht))
 #env.process(send_test_messages(env, dht))
 env.process(send_test_data(env,dht))
-#env.process(node_exit(env, dht,first_node))
+# env.process(node_exit(env, dht))
 env.process(afficher_DHT(env,dht))
-env.run(until=101)
+env.run(until=242)
