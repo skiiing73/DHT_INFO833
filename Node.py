@@ -105,72 +105,81 @@ class Node:
     
     def check_donnees(self):
         for elements in self.data:
-            if not(elements.owner is self.right or elements.owner is self.left):
+            if not(elements.owner is self.right or elements.owner is self.left or elements.owner is self):
                 self.data.remove(elements)
-            elif self==elements.owner:
+            if self==elements.owner:
                 self.send_message(receiver=None,final_destinataire=self.right,content=elements)
                 self.send_message(receiver=None,final_destinataire=self.left,content=elements)
 
     def handle_messages(self):
         """Gère les messages entrants et les transmet si nécessaire."""
-        while True :
+        while True:
             yield self.env.timeout(1)
             while self.is_connected:
-                yield self.env.timeout(2)  # Attente d'un délai avant de traiter le message
+                yield self.env.timeout(2)
                 while self.inbox:
-                    msg = self.inbox.pop(0)  # Récupère le premier message
+                    msg = self.inbox.pop()
 
-                    # Message pour l'arrivé de nouveau noeud
                     if msg.join_info:
                         print(f"[{self.env.now}] Nœud {self.node_id} envoie un message à {msg.sender.node_id} pour lui donner ses voisins")
-                        self.send_message(msg.sender,[self.left,self,self.right],None)
+                        self.send_message(msg.sender, [self.left, self, self.right], None)
 
-                    # Message pour la maj des voisins lors de l'insertion
                     elif msg.voisin is not None:
-                        if msg.voisin == "gauche_joining":
-                            self.right = msg.sender
-                        elif msg.voisin == "droite_joining":
-                            self.left = msg.sender
-                        elif msg.voisin == "gauche_leaving":
-                            self.right = msg.sender.right
-                        elif msg.voisin == "droite_leaving":
-                            self.left = msg.sender.left
-                    
-                    #cas message avec data qui cherche son emplacement
-                    if isinstance(msg.content,Donnees) and msg.final_destinataire is None :
-                        if msg.content.id >= self.right.node_id and self.node_id < self.right.node_id:
-                            self.right.inbox.append(msg)
-                        elif msg.content.id <= self.left.node_id and self.node_id > self.left.node_id:
-                            self.left.inbox.append(msg)
-                        else :
-                            self.stocker_donnees(msg.content)
-                            
-                             
-                    
-                    if msg.final_destinataire is not None:
-                        # Message avec une donnée qui va
-                        if isinstance(msg.content,Donnees) :
-                            self.stocker_donnees(msg.content)
-                        else:
-                            # Message classico classique
-                            if self.node_id == msg.final_destinataire.node_id:
-                                # Si c'est le bon destinataire, on traite le message
-                                print(f"[{self.env.now}] Nœud {self.node_id} traite le message de {msg.sender.node_id}: {msg.content}")
-                            else:
-                                # Si ce n'est pas le bon destinataire, on transmet au voisin suivant
-                                # On regarde nos voisins dans le cas où notre destinataire se trouve de l'autre coté du cercle
-                                # Cela permet d'eviter de faire tout le tour de la DHT
-                                if msg.final_destinataire.node_id == self.right.node_id :
-                                    print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
-                                    self.right.inbox.append(msg)
-                                elif msg.final_destinataire.node_id == self.left.node_id :
-                                    print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
-                                    self.left.inbox.append(msg)
+                        self._update_neighbors(msg)
 
-                                elif self.node_id < msg.final_destinataire.node_id:
-                                    print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
-                                    self.right.inbox.append(msg)  # Transmet le message au voisin suivant
-                                else: 
-                                    print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
-                                    self.left.inbox.append(msg)  # Transmet le message au voisin suivant
-        
+                    elif isinstance(msg.content, Donnees) and msg.final_destinataire is None:
+                        #insertion d'une donnée dans la dht
+                        self._route_data_message(msg)
+
+                    else :
+                        #vérification de la replication des données
+                        self._handle_final_destination_message(msg)
+
+    def _update_neighbors(self, msg):
+        #mets a jour les voisins du noeud
+        if msg.voisin == "gauche_joining":
+            self.right = msg.sender
+        elif msg.voisin == "droite_joining":
+            self.left = msg.sender
+        elif msg.voisin == "gauche_leaving":
+            self.right = msg.sender.right
+        elif msg.voisin == "droite_leaving":
+            self.left = msg.sender.left
+
+    def _route_data_message(self, msg):
+        #stocke la donnée si elle est sur la bon noeud sinon la route
+        if msg.content.id >= self.right.node_id and self.node_id < self.right.node_id:
+            self.right.inbox.append(msg)
+        elif msg.content.id <= self.left.node_id and self.node_id > self.left.node_id:
+            self.left.inbox.append(msg)
+        else:
+            self.stocker_donnees(msg.content)
+
+    def _handle_final_destination_message(self, msg):
+        #regarde si le message est pour nous et le traite 
+
+        if isinstance(msg.content, Donnees):
+            #stocke la donnée si le message en contient une
+            self.stocker_donnees(msg.content)
+        else:
+            if self.node_id == msg.final_destinataire.node_id:
+                #traitement d'un message textuel
+                print(f"[{self.env.now}] Nœud {self.node_id} traite le message de {msg.sender.node_id}: {msg.content}")
+            else:
+                #on est pas le bon noeud alors on transfère
+                self._forward_message(msg)
+
+    def _forward_message(self, msg):
+        #trasnfere les messages entre les noeuds
+        if msg.final_destinataire.node_id == self.right.node_id:
+            print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
+            self.right.inbox.append(msg)
+        elif msg.final_destinataire.node_id == self.left.node_id:
+            print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
+            self.left.inbox.append(msg)
+        elif self.node_id < msg.final_destinataire.node_id:
+            print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.right.node_id}")
+            self.right.inbox.append(msg)
+        else:
+            print(f"[{self.env.now}] Nœud {self.node_id} transmet le message à {self.left.node_id}")
+            self.left.inbox.append(msg)
