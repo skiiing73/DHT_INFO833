@@ -36,11 +36,11 @@ def send_test_messages(env, dht):
 
 def send_test_data(env, dht):
     while True:
-        yield env.timeout(28)
+        yield env.timeout(20)
         if len(dht.nodes) > 3:
             sender = random.choice(dht.nodes)
             data = Donnees(random.randint(1,100),"test")
-            sender.send_message(content=data)
+            sender.send_message(receiver=sender.right,content=data)
             print(f"[{env.now}] Nœud {sender.node_id} veut introduire la donnée {data.id}")
             
 #Afficher l'etat de la DHT
@@ -59,6 +59,7 @@ dht.nodes.append(first_node)
 print(f"[{env.now}] premier node {first_node.node_id} inséré")
 env.process(node_arrival(env, dht))
 #env.process(send_test_messages(env, dht))
+env.process(send_test_data(env,dht))
 env.process(node_exit(env, dht,first_node))
 env.process(afficher_DHT(env,dht))
 env.run(until=200)

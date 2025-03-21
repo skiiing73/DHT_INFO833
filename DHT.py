@@ -34,7 +34,10 @@ class DHT:
         current = first
         
         while True:
-            nodes_state.append(f"[Nœud {current.node_id}] Données : {current.data if hasattr(current, 'data') else 'Aucune'}")
+            nodes_state.append(
+    f"[Nœud {current.node_id}] Données : {', '.join(str(d.id) for d in current.data) if hasattr(current, 'data') and current.data else 'Aucune'}"
+)
+
             current = current.right
             if current == first:
                 break
