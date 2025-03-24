@@ -22,7 +22,7 @@ def node_exit(env, dht):
     while True:
         yield env.timeout(30)
         node_leaving=random.choice(dht.nodes)
-        node_leaving.leave()
+        env.process(node_leaving.leave())
 
 # Tester l'envoi de messages
 def send_test_messages(env, dht):
@@ -65,6 +65,6 @@ print(f"[{env.now}] premier node {first_node.node_id} inséré")
 env.process(node_arrival(env, dht))
 #env.process(send_test_messages(env, dht))
 env.process(send_test_data(env,dht))
-# env.process(node_exit(env, dht))
+#env.process(node_exit(env, dht))
 env.process(afficher_DHT(env,dht))
 env.run(until=242)

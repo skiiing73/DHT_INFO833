@@ -80,6 +80,8 @@ class Node:
         print(f"[{self.env.now}] Node {self.node_id} est parti.")
         for element in self.data:
             element.setOwner(self.right)
+        yield self.env.timeout(5)
+
         self.right.check_donnees()
         self.left.check_donnees()
 
